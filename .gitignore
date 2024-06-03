@@ -1,4 +1,3 @@
-config.json
-*.log
+resources/config.json
 resources/last_updated.txt
-last_updated.txt
+*.log
