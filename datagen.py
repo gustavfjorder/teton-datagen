@@ -2,35 +2,59 @@ import psycopg2
 from datetime import datetime, timedelta
 import json
 import logging
-import os
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Constants for file paths
+CONFIG_FILE_PATH = 'resources/config.json'
+TABLES_TO_DATAGEN_FILE_PATH = 'resources/tables_to_datagen.json'
+LAST_UPDATED_FILE_PATH = 'resources/last_updated.txt'
+
 def load_config(filePath):
-    with open(filePath, 'r') as file:
-        return json.load(file)
+    """Load JSON configuration from a file."""
+    try:
+        with open(filePath, 'r') as file:
+            return json.load(file)
+    except Exception as e:
+        logging.error(f"Failed to load config file {filePath}: {e}")
+        raise
 
 def updateLastUpdated(filePath, endDate):
-    timestamp_str = endDate.isoformat()
-    with open(filePath, 'w') as file:
-        file.write(timestamp_str)
+    """Update the last updated timestamp in the file."""
+    try:
+        timestampStr = endDate.isoformat()
+        with open(filePath, 'w') as file:
+            file.write(timestampStr)
+        logging.info(f"Updated last_updated.txt with {endDate}")
+    except Exception as e:
+        logging.error(f"Failed to update last_updated file {filePath}: {e}")
+        raise
 
 def getLastUpdated(filePath):
-    with open(filePath, 'r') as file:
-        date_string = file.read().strip()
-    return datetime.fromisoformat(date_string)
+    """Get the last updated timestamp from the file."""
+    try:
+        with open(filePath, 'r') as file:
+            date_string = file.read().strip()
+        return datetime.fromisoformat(date_string)
+    except Exception as e:
+        logging.error(f"Failed to read last_updated file {filePath}: {e}")
+        raise
 
 def getTablesToDatagen(filePath):
-    with open(filePath, 'r') as file:
-        return json.load(file)
+    """Load the list of tables to generate data for from the JSON file."""
+    try:
+        with open(filePath, 'r') as file:
+            return json.load(file)
+    except Exception as e:
+        logging.error(f"Failed to load tables_to_datagen file {filePath}: {e}")
+        raise
 
 def datagen(table, startDate, endDate, config):
-    # Predefined queries
+    """Generate data for the specified table."""
+
     fetchQuery = "SELECT * FROM PUBLIC.{0} where {1} between '{2}' and '{3}';"
     getMaxIdQuery = "SELECT MAX(ID) FROM PUBLIC.{0};"
-
-    # Database connection parameters
     db_params = config['database']
 
     try:
@@ -81,17 +105,20 @@ def datagen(table, startDate, endDate, config):
         logging.error(f"Error processing table {table['name']}: {e}")
 
 if __name__ == "__main__":
-    config = load_config('resources/config.json')
-    tablesToDatagen = getTablesToDatagen('resources/tables_to_datagen.json')
+    try:
+        config = load_config('resources/config.json')
+        tablesToDatagen = getTablesToDatagen('resources/tables_to_datagen.json')
 
-    # We want to fill rows for the interval [lastUpdated, now]
-    # That means we fetch rows for the interval [lastUpdated-60d, now-60d] and add 60 days to all timestamps
-    lastUpdated = getLastUpdated('resources/last_updated.txt')
-    startDate = lastUpdated - timedelta(days=60)
-    currentDate = datetime.now()
-    endDate = currentDate - timedelta(days=60)
+        # We want to fill rows for the interval [lastUpdated, now]
+        # That means we fetch rows for the interval [lastUpdated-60d, now-60d] and add 60 days to all timestamps
+        lastUpdated = getLastUpdated('resources/last_updated.txt')
+        startDate = lastUpdated - timedelta(days=60)
+        currentDate = datetime.now()
+        endDate = currentDate - timedelta(days=60)
 
-    for table in tablesToDatagen:
-        datagen(table, startDate, endDate, config)
+        for table in tablesToDatagen:
+            datagen(table, startDate, endDate, config)
 
-    updateLastUpdated('resources/last_updated.txt', currentDate)
+        updateLastUpdated('resources/last_updated.txt', currentDate)
+    except Exception as e:
+        logging.error(f"Failed to run the datagen process: {e}")
