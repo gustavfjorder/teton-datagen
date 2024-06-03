@@ -1,0 +1,80 @@
+[
+    {
+        "name": "FALLS",
+        "timestampColumn": "FALL_AT",
+        "columnsToDatagen": [
+            "FALL_AT",
+            "STAFF_PRESENT_AT",
+            "RESOLVED_AT"
+        ],
+        "allColumns":
+        [
+            "ID",
+            "MULTIPLE_PEOPLE_PRESENT",
+            "INJURY",
+            "FALL_AT",
+            "STAFF_PRESENT_AT",
+            "RESOLVED_AT",
+            "KIND"
+        ]
+    },
+    {
+        "name": "RESPIRATIONS",
+        "timestampColumn": "TIMESTAMP",
+        "columnsToDatagen": [
+            "TIMESTAMP"
+        ],
+        "allColumns":
+        [
+            "ID",
+            "TIMESTAMP",
+            "BED_ID",
+            "BPM"
+        ]
+    },
+    {
+        "name": "INTERNAL_DIAGNOSTICS_EVENT",
+        "timestampColumn": "TIMESTAMP",
+        "columnsToDatagen": [
+            "TIMESTAMP"
+        ],
+        "allColumns":
+        [
+            "ID",
+            "BED",
+            "TYPE",
+            "DATA",
+            "TIMESTAMP"
+        ]
+    },
+    {
+        "name": "ALERT_DEVICE_SESSION",
+        "timestampColumn": "START_TS",
+        "columnsToDatagen": [
+            "START_TS",
+            "END_TS"
+        ],
+        "allColumns":
+        [
+            "ID",
+            "START_TS",
+            "END_TS",
+            "ALERT_DEVICE",
+            "TIMESTAMP"
+        ]
+    },
+    {
+        "name": "SLEEP",
+        "timestampColumn": "TIMESTAMP",
+        "columnsToDatagen": [
+            "TIMESTAMP"
+        ],
+        "allColumns":
+        [
+            "ID",
+            "BED",
+            "TIMESTAMP",
+            "PSEUDO_STAGE"
+        ]
+    }
+]

@@ -1,0 +1,9 @@
+{
+    "database": {
+        "dbname": "defaultdb",
+        "user": "avnadmin",
+        "password": "",
+        "host": "pg-teton-teton.j.aivencloud.com",
+        "port": "11995"
+    }
+}
