@@ -1,4 +1,4 @@
 config.json
-logs/*
+*.log
 resources/last_updated.txt
 last_updated.txt
