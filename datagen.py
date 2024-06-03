@@ -2,14 +2,13 @@ import psycopg2
 from datetime import datetime, timedelta
 import json
 import logging
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Constants for file paths
-CONFIG_FILE_PATH = 'resources/config.json'
-TABLES_TO_DATAGEN_FILE_PATH = 'resources/tables_to_datagen.json'
-LAST_UPDATED_FILE_PATH = 'resources/last_updated.txt'
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 def load_config(filePath):
     """Load JSON configuration from a file."""
@@ -106,12 +105,12 @@ def datagen(table, startDate, endDate, config):
 
 if __name__ == "__main__":
     try:
-        config = load_config('resources/config.json')
-        tablesToDatagen = getTablesToDatagen('resources/tables_to_datagen.json')
+        config = load_config(os.path.join(script_dir,'resources/config.json'))
+        tablesToDatagen = getTablesToDatagen(os.path.join(script_dir,'resources/tables_to_datagen.json'))
 
         # We want to fill rows for the interval [lastUpdated, now]
         # That means we fetch rows for the interval [lastUpdated-60d, now-60d] and add 60 days to all timestamps
-        lastUpdated = getLastUpdated('resources/last_updated.txt')
+        lastUpdated = getLastUpdated(os.path.join(script_dir, 'resources/last_updated.txt'))
         startDate = lastUpdated - timedelta(days=60)
         currentDate = datetime.now()
         endDate = currentDate - timedelta(days=60)
@@ -119,6 +118,6 @@ if __name__ == "__main__":
         for table in tablesToDatagen:
             datagen(table, startDate, endDate, config)
 
-        updateLastUpdated('resources/last_updated.txt', currentDate)
+        updateLastUpdated(os.path.join(script_dir,'resources/last_updated.txt'), currentDate)
     except Exception as e:
         logging.error(f"Failed to run the datagen process: {e}")
