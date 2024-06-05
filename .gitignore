@@ -1,3 +1,4 @@
 resources/config.json
 resources/last_updated.txt
 *.log
+.DS_Store
