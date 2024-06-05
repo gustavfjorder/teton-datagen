@@ -1,5 +1,5 @@
 import psycopg2
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 import os
@@ -19,27 +19,6 @@ def load_config(filePath):
         logging.error(f"Failed to load config file {filePath}: {e}")
         raise
 
-def updateLastUpdated(filePath, endDate):
-    """Update the last updated timestamp in the file."""
-    try:
-        timestampStr = endDate.isoformat()
-        with open(filePath, 'w') as file:
-            file.write(timestampStr)
-        logging.info(f"Updated last_updated.txt with {endDate}")
-    except Exception as e:
-        logging.error(f"Failed to update last_updated file {filePath}: {e}")
-        raise
-
-def getLastUpdated(filePath):
-    """Get the last updated timestamp from the file."""
-    try:
-        with open(filePath, 'r') as file:
-            date_string = file.read().strip()
-        return datetime.fromisoformat(date_string)
-    except Exception as e:
-        logging.error(f"Failed to read last_updated file {filePath}: {e}")
-        raise
-
 def getTablesToDatagen(filePath):
     """Load the list of tables to generate data for from the JSON file."""
     try:
@@ -51,11 +30,39 @@ def getTablesToDatagen(filePath):
 
 def checkQueryLegality(insertQuery, modifiedRow):
     """Check if the query is legal."""
-    if "INSERT" in insertQuery.lower():
+    if "insert" in insertQuery.lower():
         for value in modifiedRow:
-            if isinstance(value, datetime) and value < datetime(2024, 6, 1):
+            if isinstance(value, datetime) and value < datetime(2024, 6, 1, tzinfo=timezone.utc):
                 logging.error(f"Query: {insertQuery} is illegal for row: {modifiedRow} because it contains a date before 2024-06-01")
                 raise Exception(f"Query: {insertQuery} is illegal for row: {modifiedRow} because it contains a date before 2024-06-01")
+
+def getLastUpdated(config):
+    db_params = config['database']
+    
+    try:
+        with psycopg2.connect(dbname=db_params['dbname'], user=db_params['user'], password=db_params['password'], host=db_params['host'], port=db_params['port']) as conn:
+            with conn.cursor() as cur:
+                logging.info("Connected to database")
+                cur.execute("SELECT last_updated FROM PUBLIC.{0};".format("update_tracker"))
+                lastUpdated = cur.fetchone()[0]
+                return lastUpdated
+    except Exception as e:
+        logging.error(f"Error getting last updated date: {e}")
+        raise Exception(f"Error getting last updated date: {e}")
+
+def updateLastUpdated(newDate, config):
+    db_params = config['database']
+
+    try:
+        with psycopg2.connect(dbname=db_params['dbname'], user=db_params['user'], password=db_params['password'], host=db_params['host'], port=db_params['port']) as conn:
+            with conn.cursor() as cur:
+                logging.info("Connected to database")
+                cur.execute("UPDATE PUBLIC.{0} SET last_updated = '{1}';".format("update_tracker", newDate))
+                conn.commit()
+                logging.info("Updated last_updated to {0}".format(newDate))
+    except Exception as e:
+        logging.error(f"Error updating last updated date: {e}")
+        raise Exception(f"Error updating last updated date: {e}")
 
 def datagen(table, startDate, endDate, config):
     """Generate data for the specified table."""
@@ -102,7 +109,7 @@ def datagen(table, startDate, endDate, config):
 
                     # Insert the new row
                     insertQuery = "INSERT INTO PUBLIC.{0} ({1}) VALUES ({2})".format(table["name"], allColumns, ", ".join(["%s"]*len(table["allColumns"])))
-                    checkPreconditions(insertQuery, modifiedRow)
+                    checkQueryLegality(insertQuery, modifiedRow)
                     cur.execute(insertQuery, modifiedRow)
                     logging.info(f"Inserted row: {modifiedRow} into table: {table['name']}")
                     rowsWritten += 1
@@ -119,7 +126,7 @@ if __name__ == "__main__":
 
         # We want to fill rows for the interval [lastUpdated, now]
         # That means we fetch rows for the interval [lastUpdated-60d, now-60d] and add 60 days to all timestamps
-        lastUpdated = getLastUpdated(os.path.join(script_dir, 'resources/last_updated.txt'))
+        lastUpdated = getLastUpdated(config)
         startDate = lastUpdated - timedelta(days=60)
         currentDate = datetime.now()
         endDate = currentDate - timedelta(days=60)
@@ -127,6 +134,6 @@ if __name__ == "__main__":
         for table in tablesToDatagen:
             datagen(table, startDate, endDate, config)
 
-        updateLastUpdated(os.path.join(script_dir,'resources/last_updated.txt'), currentDate)
+        updateLastUpdated(currentDate, config)
     except Exception as e:
         logging.error(f"Failed to run the datagen process: {e}")
