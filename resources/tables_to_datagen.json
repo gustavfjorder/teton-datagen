@@ -59,8 +59,7 @@
             "ID",
             "START_TS",
             "END_TS",
-            "ALERT_DEVICE",
-            "TIMESTAMP"
+            "ALERT_DEVICE"
         ]
     },
     {
