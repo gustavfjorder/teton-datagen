@@ -49,6 +49,14 @@ def getTablesToDatagen(filePath):
         logging.error(f"Failed to load tables_to_datagen file {filePath}: {e}")
         raise
 
+def checkQueryLegality(insertQuery, modifiedRow):
+    """Check if the query is legal."""
+    if "INSERT" in insertQuery.lower():
+        for value in modifiedRow:
+            if isinstance(value, datetime) and value < datetime(2024, 6, 1):
+                logging.error(f"Query: {insertQuery} is illegal for row: {modifiedRow} because it contains a date before 2024-06-01")
+                raise Exception(f"Query: {insertQuery} is illegal for row: {modifiedRow} because it contains a date before 2024-06-01")
+
 def datagen(table, startDate, endDate, config):
     """Generate data for the specified table."""
 
@@ -94,6 +102,7 @@ def datagen(table, startDate, endDate, config):
 
                     # Insert the new row
                     insertQuery = "INSERT INTO PUBLIC.{0} ({1}) VALUES ({2})".format(table["name"], allColumns, ", ".join(["%s"]*len(table["allColumns"])))
+                    checkPreconditions(insertQuery, modifiedRow)
                     cur.execute(insertQuery, modifiedRow)
                     logging.info(f"Inserted row: {modifiedRow} into table: {table['name']}")
                     rowsWritten += 1
